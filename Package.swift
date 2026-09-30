@@ -17,3 +17,14 @@ let package = Package(
         .testTarget(name: "SkipFFITests", dependencies: ["SkipFFI", .product(name: "SkipTest", package: "skip", condition: .when(platforms: [.macOS, .linux]))], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )
+
+let bridgeMode = (Context.environment["SKIP_BRIDGE"] ?? "0") != "0"
+let forceDylib = bridgeMode || (Context.environment["SKIP_DYNAMIC_LIBRARIES"] ?? "0") != "0"
+
+if forceDylib {
+    // all library types must be dynamic to support bridging
+    package.products = package.products.map({ product in
+        guard let libraryProduct = product as? Product.Library else { return product }
+        return .library(name: libraryProduct.name, type: .dynamic, targets: libraryProduct.targets)
+    })
+}
